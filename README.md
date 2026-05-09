@@ -22,7 +22,7 @@ We keep loader-lock-sensitive work out of `DllMain` and avoid touching UI state 
 
 ## UI API
 
-Mew UI API exposes all kinds of scene, text, button, and lifecycle helpers!
+This API exposes all kinds of scene, text, button, and lifecycle helpers!
 
 | Function | Purpose |
 |----------|---------|
@@ -54,15 +54,17 @@ Include `mew_ui_api.h` and compile `mew_ui_api.c` into your mod. The API itself 
 
 ## SWF/FLA Modification Related Notes
 
-Mew UI API works after the game has loaded the required SWF files. So while the DLL side can do a lot of stuff on it's own, for any completely new additions to the UI, you need to author, export, and load your own custom SWF files into the game first.
+NOTE: For the sake of brevity, this explanation is going to assume that you know how to extract the game's `resources.gpak`, and are at least aware of how FLA/SWFs work in the context of the game.
+
+The API works after the game has loaded the required SWF files. So while the DLL side can do a lot of stuff on it's own, for any completely new additions to the UI, you need to author, export, and load your own custom SWF files into the game first.
 
 An example FLA and mod files showcasing `house.swf` UI modification is provided with this project. Use it as the reference for how custom UI should be pulled off, such as how it should be named, structured, and animated.
 
-For new UI elements, you generally start by copying or recreating the portion of the existing UI you want to modify into a new 1280x720 FLA file. From there, edit the layout, graphics, instance names, and animations as needed, then export it as a custom SWF. That SWF must then be loaded by the game through a `swfs/swflist.gon.append` file in your mod before the Mew UI API can interact with it.
+For new UI elements, you generally start by copying the portion of the existing UI that you want to modify into a new 1280x720 FLA file. From there, edit the layout, graphics, instance names, and animations as needed, then export it as a custom SWF. That SWF must then be loaded by the game through a `swfs/swflist.gon.append` file in your mod before the Mew UI API can interact with it.
 
-The most important thing to realize is that the text name/button name you pass into various API functions is actually the "instance name" set in the FLA/SWF. The  name in the code must match EXACTLY what it is in the SWF/FLA, including spelling, underscores, and capitalization.
+The most important thing to realize with this API is that the text name/button name you pass into various API functions is the "instance name" set in the FLA/SWF. The name in the code must match EXACTLY what it is in the SWF/FLA, including spelling, underscores, and capitalization.
 
-For any text localization keys that are used for the new UI in your mods code, you will need to add these in a `combined.csv.append` file in your mod.
+For any text localization keys that are used for new UI in your code mod, you will need to add them in a `combined.csv.append` file in your mod.
 
 ## Scene Bindings
 
@@ -358,7 +360,7 @@ static void HookExclusiveDebugButton(void)
 
 ## Button State and Interactability
 
-Disable or enable a tracked button:
+Disable/enable a tracked button:
 
 ```c
 static void SetExampleButtonEnabled(bool enabled)
