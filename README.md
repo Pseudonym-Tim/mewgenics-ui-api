@@ -4,7 +4,7 @@ A small C/C++ helper API for [Mewgenics](https://store.steampowered.com/app/6860
 
 This is designed to work alongside [Mewjector](https://github.com/githubuser508/mewjector) and is a requirement. Essentially this API wraps the common low-level tasks mod authors usually have to do a lot of work to duplicate/pull off and makes it much simpler! Things such as: Waiting for scene-ready timing, finding loaded scenes, replacing localized text, preparing formatted text, creating new buttons from existing UI nodes, hooking game-created buttons, and receiving button events.
 
-The API is intended for injected Windows DLL mods. Mods should include `mew_ui_api.h`, compile `mew_ui_api.c`, and call `MewUI_Start()` during startup.
+The API is intended for Windows DLL mods. Mods should include `mew_ui_api.h`, compile `mew_ui_api.c`, and call `MewUI_Start()` during startup.
 
 ## How It Works
 
@@ -12,7 +12,7 @@ MewUI API installs its hooks through Mewjector and does mod UI work during the g
 
 1. Stores your mod owner name, hook priority, bootstrap interval, and tick callback
 2. Tries to resolve the Mewjector API from `version.dll`
-3. Installs scene-ready and button hooks once Mewjector and the game base are available
+3. Installs scene-ready hooks once Mewjector and the game base are available
 4. Checks that the current scene is not destroying, not in transition, and is indeed ready for UI work
 5. Calls `MewUI_Tick()` so tracked button state changes stay synchronized
 6. Calls your mod's UI tick callback on the game thread
