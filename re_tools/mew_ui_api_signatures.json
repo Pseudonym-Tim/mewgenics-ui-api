@@ -1,0 +1,447 @@
+{
+  "symbols": {
+    "MEW_RVA_MEWDIRECTOR_SINGLETON": {
+      "kind": "rva",
+      "resolver": "rip_relative_rva",
+      "pattern": "83 3B 01 75 0B 41 C7 86 20 0E 00 00 02 00 00 00 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 E8 ?? ?? ?? ?? 84 C0 0F 85 ?? ?? ?? ?? 38 85 48",
+      "displacement_offset": 19,
+      "instruction_end_offset": 23,
+      "search_sections": [
+        ".text"
+      ]
+    },
+    "MEW_RVA_ALLOC_COMPONENT_FROM_TYPE": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 20 48 89 54 24 10 56 48 83 EC 20 48 8B D9 48 83 C1 48 E8 ?? ?? ?? ?? 85 C0 0F 85 ?? ?? ?? ?? 81 BB 94 00 00",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_SCENE_REGISTER_COMPONENT": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 18 48 89 6C 24 20 48 89 54 24 10 56 57 41 56 48 83 EC 20 48",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_RESIZE_PTR_ARRAY": {
+      "kind": "rva",
+      "pattern": "E9 ?? ?? ?? ?? CC CC CC E9 ?? ?? ?? ?? CC CC CC F2 0F 11 44 24 08 48 83",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_CONTEXT_FROM_MANAGER": {
+      "kind": "rva",
+      "pattern": "40 57 48 83 EC 20 80 B9 B0 04 00 00 00 48 8B F9 74 08 33 C0 48 83 C4 20 5F C3 B9 40 00 00 00 48",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_SCENE_READY_UPDATE": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 10 48 89 6C 24 18 57 48 83 EC 20 48 8B F9 48 89 0D ?? ?? ?? ?? 48 81 C1 E0 04 00 00 48 89 74 24 30 C7 05 ?? ?? ?? ?? 01 00 00 00 E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 8B 87 94 00",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_SCENE_READY_UPDATE_STOLEN_BYTES": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 15
+    },
+    "MEW_RVA_CONTEXT_ATTACH_COMPONENT_REF": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 10 48 89 7C 24 18 41 56 48 83 EC 20 8B 01 4C 8B F2 8B 59 04 48 8B F9 3B D8 75 4F 0F 57 C0 48 89 74 24 30 F2 48 0F 2A C0 48 8D 71 08 48 8B 49 08 F2 0F 59 05 ?? ?? ?? ?? F2 48 0F 2C D8 83 FB 02 73 05 BB 02 00 00 00 8B D3 48 C1 E2 03 E8 ?? ?? ?? ?? 48 89",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_UI_FIND_CHILD_BY_NAME": {
+      "kind": "rva",
+      "pattern": "48 89 54 24 10 53 56 57 48 83 EC 60 48 8B F2 48 8B D9 48 8B 89 80 00 00 00 48 85 C9 75 12 48 8B CA E8 ?? ?? ?? ?? 33 C0 48 83 C4 60 5F 5E 5B C3 48 8B 01 FF 50 18 48 8B 8B 80 00 00 00 48 85 C9 74 24 48 8B 01 FF 10 83 F8 01 74 11 48 8B 8B 80 00 00 00 48 8B 01 FF 10 83 F8 02 75 09 48 8B 9B 80 00 00 00 EB 02 33 DB 48 8B D6 48 8D 4C 24 20 E8 ?? ?? ?? ?? 48 8B F8 48 89 84 24 80 00 00 00 48 8B D0 48 8D 4C 24 40 E8 ?? ?? ?? ?? 48 8B D0",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_FIND_UI_CHILD_ALT": {
+      "kind": "rva",
+      "pattern": "48 89 54 24 10 53 56 57 48 83 EC 60 48 8B F2 48 8B D9 48 8B 89 80 00 00 00 48 85 C9 75 12 48 8B CA E8 ?? ?? ?? ?? 33 C0 48 83 C4 60 5F 5E 5B C3 48 8B 01 FF 50 18 48 8B 8B 80 00 00 00 48 85 C9 74 24 48 8B 01 FF 10 83 F8 01 74 11 48 8B 8B 80 00 00 00 48 8B 01 FF 10 83 F8 02 75 09 48 8B 9B 80 00 00 00 EB 02 33 DB 48 8B D6 48 8D 4C 24 20 E8 ?? ?? ?? ?? 48 8B F8 48 89 84 24 80 00 00 00 48 8B D0 48 8D 4C 24 40 E8 ?? ?? ?? ?? 45 33 C0",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_UI_FIND_NODE_BY_PATH_OR_NAME": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 54 24 10 55 56 57 41 56 41 57 48 83 EC 60 45 0F B6",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_UI_ROOT_SET_TEXT_STRING": {
+      "kind": "rva",
+      "pattern": "4C 89 44 24 18 48 89 54 24 10 53 56 57 48 83 EC 60 49 8B F8 48 8B F2 48 8B 59 38 48 8D 4C 24 20 E8 ?? ?? ?? ?? 48 8B D0 48 8B CB E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 74 20",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_UI_ROOT_SET_TEXT_WIDE_STRING": {
+      "kind": "rva",
+      "pattern": "4C 89 44 24 18 48 89 54 24 10 53 56 57 48 83 EC 60 49 8B F8 48 8B F2 48 8B 59 38 48 8D 4C 24 20 E8 ?? ?? ?? ?? 48 8B D0 48 8B CB E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 74 1F",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_INIT_NARROW_STRING": {
+      "kind": "rva",
+      "pattern": "40 53 48 83 EC 20 33 C0 0F 57 C0 0F 11 01 48 89 41 10 48 8B D9 48 89 41 18 49 C7 C0 FF FF FF FF 49 FF C0 42 38 04 02 75",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_DESTROY_NARROW_STRING": {
+      "kind": "rva",
+      "pattern": "40 53 48 83 EC 20 48 8B 51 18 48 8B D9 48 83 FA 0F 76 2C 48 8B 09 48 FF",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_ASSIGN_NARROW_STRING_LITERAL": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 10 48 89 6C 24 18 56 57 41 57 48 83 EC 20 48 8B 69 18 49 8B",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_MOVE_WIDE_STRING": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 48 3B CA 74 69 48 8B 51",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_ASSIGN_WIDE_STRING_DATA": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC 20 48 8B 71 18 4D 8B F0 4C",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_COPY_WIDE_STRING_OBJECT": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 41 56 48 83 EC 20 33 C0 0F 57 C0 0F 11 01 48 89 41 10 4C 8B F2 48 89 41 18 48 8B D9 48 83 7A 18 07",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_DESTROY_WIDE_STRING": {
+      "kind": "rva",
+      "pattern": "40 53 48 83 EC 20 48 8B 51 18 48 8B D9 48 83 FA 07 76 31 48 8B 09 48 8D",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_LOCALIZE_NARROW_KEY": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 57 48 83 EC 50 48 8B FA 48 8B D9 41 B1 01 48 8D 54 24 28",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_SET_TEXT_ELEMENT_STRING": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 74 24 20 48 89 54 24 10 57 48 83 EC 70 41 0F B6 F9",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_SET_TEXT_ELEMENT_WIDE_STRING": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 74 24 18 48 89 54 24 10 57 48 83 EC 20 45 0F B6 D0",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_BUTTON_CONSTRUCT": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 10 48 89 74 24 18 48 89 4C 24 08 57 48 83 EC 30 48 8B D9 8B",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_BUTTON_SETUP_FROM_NODE": {
+      "kind": "rva",
+      "pattern": "4C 8B DC 49 89 5B 08 49 89 6B 10 4D 89 4B 20 4D 89 43 18 56 57 41 56 48",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_BUTTON_UPDATE": {
+      "kind": "rva",
+      "pattern": "40 55 57 48 8B EC 48 83 EC 48 48 8B F9 48 8B 49 38 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 47 40 48 39",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_BUTTON_ACTIVATE": {
+      "kind": "rva",
+      "pattern": "48 89 74 24 18 57 48 83 EC 60 33 F6 48 8B F9 40 38 71 59 74 08 84 D2 0F",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_BUTTON_ACTIVATE_STOLEN_BYTES": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 15
+    },
+    "MEW_RVA_BUTTON_CAN_ACTIVATE": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 8B EA 48 8B D9 45 84 C0 74 0B 80 79",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_BUTTON_CAN_ACTIVATE_STOLEN_BYTES": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 15
+    },
+    "MEW_RVA_BUTTON_TYPE_DESCRIPTOR": {
+      "kind": "rva",
+      "resolver": "rip_relative_rva",
+      "pattern": "28 C3 CC CC CC CC CC CC CC CC CC CC 48 83 EC 28 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 C7 05 ?? ?? ?? ?? C8 03 00 00 48 C7 05 ?? ?? ?? ?? 00",
+      "displacement_offset": 19,
+      "instruction_end_offset": 23,
+      "search_sections": [
+        ".text"
+      ]
+    },
+    "MEW_RVA_LOCALIZATION_MANAGER": {
+      "kind": "rva",
+      "resolver": "rip_relative_rva",
+      "pattern": "E8 ?? ?? ?? ?? 90 41 B1 01 4C 8B C0 48 8D 55 B8 48 8D 1D ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 90 48 8B D0 48 8D 4C 24 78 E8 ?? ?? ?? ?? C7 44",
+      "displacement_offset": 19,
+      "instruction_end_offset": 23,
+      "search_sections": [
+        ".text"
+      ]
+    },
+    "MEW_OFF_MEWDIRECTOR_DIRECTOR": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 40
+    },
+    "MEW_OFF_SCENE_COMPONENT_LISTS": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 24
+    },
+    "MEW_OFF_SCENE_DOING_DESTRUCTION": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 1200
+    },
+    "MEW_OFF_SCENE_NAME": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 1208
+    },
+    "MEW_OFF_SCENE_SKIP_READY_TICK_A": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 1240
+    },
+    "MEW_OFF_SCENE_SKIP_READY_TICK_B": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 1242
+    },
+    "MEW_OFF_SCENE_SKIP_READY_TICK_C": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 1243
+    },
+    "MEW_OFF_COMPONENT_FLAGS_A": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 12
+    },
+    "MEW_OFF_COMPONENT_FLAGS_B": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 13
+    },
+    "MEW_OFF_COMPONENT_LAYER": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 14
+    },
+    "MEW_OFF_COMPONENT_ENABLED": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 16
+    },
+    "MEW_OFF_COMPONENT_CONTEXT": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 24
+    },
+    "MEW_OFF_COMPONENT_MANAGER": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 32
+    },
+    "MEW_OFF_COMPONENT_MANAGER_HEADER": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 40
+    },
+    "MEW_OFF_BUTTON_NODE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 72
+    },
+    "MEW_OFF_BUTTON_MOUSE_GROUP": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 80
+    },
+    "MEW_OFF_BUTTON_ROLE_NAME": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 504
+    },
+    "MEW_OFF_BUTTON_LABEL_TEXT": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 440
+    },
+    "MEW_OFF_BUTTON_LOCK_DISABLE_BYTE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 88
+    },
+    "MEW_OFF_BUTTON_ACTIVATE_BYTE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 89
+    },
+    "MEW_OFF_BUTTON_MOUSE_STRICT_BYTE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 91
+    },
+    "MEW_OFF_BUTTON_STATE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 752
+    },
+    "MEW_OFF_BUTTON_PREVIOUS_STATE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 760
+    },
+    "MEW_OFF_BUTTON_MODE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 764
+    },
+    "MEW_OFF_BUTTON_STATE_NODE_NAMES": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 768
+    },
+    "MEW_OFF_CONTEXT_COMPONENT_REFS": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 32
+    },
+    "MEW_OFF_CONTEXT_LAYER": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 25
+    },
+    "MEW_OFF_MANAGER_BUCKET_UPDATE_CAPACITY": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 216
+    },
+    "MEW_OFF_MANAGER_BUCKET_UPDATE_SIZE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 220
+    },
+    "MEW_OFF_MANAGER_BUCKET_UPDATE_DATA": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 224
+    },
+    "MEW_OFF_MANAGER_BUCKET_CLICK_CAPACITY": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 288
+    },
+    "MEW_OFF_MANAGER_BUCKET_CLICK_SIZE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 292
+    },
+    "MEW_OFF_MANAGER_BUCKET_CLICK_DATA": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 296
+    },
+    "MEW_OFF_MANAGER_BUCKET_RENDER_CAPACITY": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 864
+    },
+    "MEW_OFF_MANAGER_BUCKET_RENDER_SIZE": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 868
+    },
+    "MEW_OFF_MANAGER_BUCKET_RENDER_DATA": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 872
+    },
+    "MEW_SIZE_BUTTON": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 960
+    },
+    "MEW_SIZE_CALLBACK_BINDING_SCRATCH": {
+      "kind": "constant",
+      "resolver": "constant",
+      "value": 64
+    }
+  }
+}
