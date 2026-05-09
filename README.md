@@ -1,4 +1,4 @@
-# Mew UI API
+# MewUI API
 
 A small C/C++ helper API for [Mewgenics](https://store.steampowered.com/app/686060/Mewgenics/) DLL mods that want to create new in-game UI, modify existing UI, update UI states, or hook into UI systems.
 
@@ -8,7 +8,7 @@ The API is intended for injected Windows DLL mods. Mods should include `mew_ui_a
 
 ## How It Works
 
-Mew UI API installs its hooks through Mewjector and does mod UI work during the game's scene-ready update path. When your mod starts the API, it:
+MewUI API installs its hooks through Mewjector and does mod UI work during the game's scene-ready update path. When your mod starts the API, it:
 
 1. Stores your mod owner name, hook priority, bootstrap interval, and tick callback
 2. Tries to resolve the Mewjector API from `version.dll`
@@ -54,13 +54,13 @@ Include `mew_ui_api.h` and compile `mew_ui_api.c` into your mod. The API itself 
 
 ## SWF/FLA Modification Related Notes
 
-NOTE: For the sake of brevity, this explanation is going to assume that you know how to extract the game's `resources.gpak`, and are at least aware of how FLA/SWFs work in the context of the game.
+(IMPORTANT: For the sake of brevity, this explanation is going to assume that you know how to extract the game's `resources.gpak`, and are at least aware of how FLA/SWFs work in the context of the game.)
 
 The API works after the game has loaded the required SWF files. So while the DLL side can do a lot of stuff on it's own, for any completely new additions to the UI, you need to author, export, and load your own custom SWF files into the game first.
 
 An example FLA and mod files showcasing `house.swf` UI modification is provided with this project. Use it as the reference for how custom UI should be pulled off, such as how it should be named, structured, and animated.
 
-For new UI elements, you generally start by copying the portion of the existing UI that you want to modify into a new 1280x720 FLA file. From there, edit the layout, graphics, instance names, and animations as needed, then export it as a custom SWF. That SWF must then be loaded by the game through a `swfs/swflist.gon.append` file in your mod before the Mew UI API can interact with it.
+For new UI elements, you generally start by copying the portion of the existing UI that you want to modify into a new 1280x720 FLA file. From there, edit the layout, graphics, instance names, and animations as needed, then export it as a custom SWF. That SWF must then be loaded by the game through a `swfs/swflist.gon.append` file in your mod before the MewUI API can interact with it.
 
 The most important thing to realize with this API is that the text name/button name you pass into various API functions is the "instance name" set in the FLA/SWF. The name in the code must match EXACTLY what it is in the SWF/FLA, including spelling, underscores, and capitalization.
 
@@ -488,9 +488,9 @@ The API is meant to be built into your mod DLL. It does NOT require a separate i
 
 ## Mewjector Integration
 
-Mew UI API uses [Mewjector](https://github.com/githubuser508/mewjector) for shared hook installation, game-base lookup, and logging. Mewjector hook chaining allows multiple mods to hook the same RVA without blindly overwriting each other.
+MewUI API uses [Mewjector](https://github.com/githubuser508/mewjector) for shared hook installation, game-base lookup, and logging. Mewjector hook chaining allows multiple mods to hook the same RVA without blindly overwriting each other.
 
-Mods using Mew UI API should still be loaded through Mewjector or a Mewjector-compatible setup. If Mewjector is not available, `MewUI_Start()` keeps retrying instead of installing hooks immediately.
+Mods using this API should still be loaded through Mewjector or a Mewjector-compatible setup. If Mewjector is not available, `MewUI_Start()` keeps retrying instead of installing hooks immediately.
 
 ## License
 
