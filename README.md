@@ -54,7 +54,7 @@ Include `mew_ui_api.h` and compile `mew_ui_api.c` into your mod. The API itself 
 
 ## SWF/FLA Modification Related Notes
 
-(IMPORTANT: For the sake of brevity, this explanation is going to assume that you know how to extract the game's `resources.gpak`, and are at least aware of how FLA/SWFs work in the context of the game.)
+(IMPORTANT: For the sake of brevity, this explanation is going to assume that you know how to extract the game's `resources.gpak`, and are at least aware of how FLA/SWFs work in the context of the game and how to mod them in.)
 
 The API works after the game has loaded the required SWF files. So while the DLL side can do a lot of stuff on it's own, for any completely new additions to the UI, you need to author, export, and load your own custom SWF files into the game first.
 
@@ -68,7 +68,7 @@ For any text localization keys that are used for new UI in your code mod, you wi
 
 ## Scene Bindings
 
-Scene bindings give your UI mod a way to react when a scene loads, unloads, or changes scene-manager pointers. This is the recommended place to clear cached text, button, or prepared-format state or whatever else you need.
+Scene bindings give your UI mod a way to react when a scene loads, unloads, or changes scene-manager pointers. This is the recommended/ideal place to clear cached text, buttons, or whatever else you need.
 
 ```c
 static MewUISceneBinding g_houseScene;
@@ -117,7 +117,7 @@ static void __cdecl UITick(void* userData)
 
 ## Text Updates
 
-Set an existing text node from a localization key:
+Set text from a localization key:
 
 ```c
 static const char* const SCENE_NAME = "House";
@@ -260,7 +260,7 @@ STATS_TEXT,"Level: {v0} - Accuracy {v1}%",,,,
 
 ## Buttons
 
-Create or reuse a button from an existing UI node, apply a localized label, and receive button events:
+Create a new button from an existing logic-less UI node, apply a localized label, and receive button events via callback:
 
 ```c
 static const char* const BUTTON_NODE_NAME = "test_button";
@@ -435,7 +435,7 @@ static void ClearExampleButtonInteractOverride(void)
 
 ## Recommended UI Tick
 
-Most mods should handle UI work responsibly and carefully. Do not update something every frame if you don't need to! Cache things and use scene binding refreshes. Helper calls will simply fail until the scene and the target nodes are available. Your `UITick` and `ShutdownUIState(void)` should ideally look as shown below!
+Most mods should handle UI work responsibly and carefully. Do not update something every frame (60fps default) if you don't need to! Cache things and use scene binding refreshes. Helper calls will simply fail until the scene and the target nodes are available. Your `UITick` and `ShutdownUIState(void)` should ideally look as shown below!
 
 ```c
 static void __cdecl UITick(void* userData)
@@ -488,9 +488,9 @@ The API is meant to be built into your mod DLL. It does NOT require a separate i
 
 ## Mewjector Integration
 
-MewUI API uses [Mewjector](https://github.com/githubuser508/mewjector) for shared hook installation, game-base lookup, and logging. Mewjector hook chaining allows multiple mods to hook the same RVA without blindly overwriting each other.
+MewUI API uses [Mewjector](https://github.com/githubuser508/mewjector) for shared hook installation, game-base lookup, and logging. Why? Mewjector hook chaining allows multiple mods to hook the same RVA without blindly overwriting each other.
 
-Mods using this API should still be loaded through Mewjector or a Mewjector-compatible setup. If Mewjector is not available, `MewUI_Start()` keeps retrying instead of installing hooks immediately.
+Mods using this API should be loaded through Mewjector. If Mewjector is not available, `MewUI_Start()` keeps retrying instead of installing hooks immediately.
 
 ## License
 
