@@ -40,7 +40,7 @@ This API exposes all kinds of scene, text, button, and lifecycle helpers!
 | `MewUI_PrepareTextFormat` | Caches a localized format for cheap repeated updates |
 | `MewUI_SetPreparedTextFormatTypedValues` | Applies typed values to a prepared text format |
 | `MewUI_SetupButtonFromLocalizationKey` | Creates or reuses a button and applies a localized label |
-| `MewUI_SetupButtonWithoutLabel` | Creates or reuses a button without changing its label |
+| `MewUI_SetupButtonWithoutLabel` | Creates or reuses a button without a label |
 | `MewUI_HookExistingButtonByNodeName` | Hooks a game-created button while preserving the original click path |
 | `MewUI_HookExistingButtonByNodeNameExclusive` | Hooks a game-created button and suppresses the original activate path |
 | `MewUI_SetButtonEnabled` | Toggles the component enabled flag and activation gate |
