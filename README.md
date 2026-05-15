@@ -1,4 +1,5 @@
 # MewUI API
+<img width="800" height="500" alt="mewuiapi" src="https://github.com/user-attachments/assets/fccc9919-8050-4627-a443-4444a91dfb9f" />
 
 A small C/C++ helper API for [Mewgenics](https://store.steampowered.com/app/686060/Mewgenics/) DLL mods that want to create new in-game UI, modify existing UI, update UI states, or hook into UI systems.
 
