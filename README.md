@@ -23,7 +23,7 @@ We keep loader-lock-sensitive work out of `DllMain` and avoid touching UI state 
 
 ## UI API
 
-This API exposes all kinds of scene, text, button, and lifecycle helpers!
+The current API exposes all kinds of scene, text, button, and lifecycle helpers! More will be added in the future!
 
 | Function | Purpose |
 |----------|---------|
