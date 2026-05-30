@@ -3,7 +3,7 @@
 
 A small C/C++ helper API for [Mewgenics](https://store.steampowered.com/app/686060/Mewgenics/) DLL mods that want to create new in-game UI, modify existing UI, update UI states, or hook into UI systems.
 
-[(C# wrapper support is included if you don't wish to use C/C++ directly!)](c#-support)
+[(C# wrapper support is included if you don't wish to use C/C++ directly!)](#c-support)
 
 This is designed to work alongside [Mewjector](https://github.com/githubuser508/mewjector) and is a requirement, although it is NOT installed as a mod! Essentially this is an API that wraps the common low-level tasks mod authors usually have to do a lot of work to duplicate/pull off and makes it much simpler! Things such as: Waiting for scene-ready timing, finding loaded scenes, replacing localized text, preparing formatted text, creating new buttons from existing UI nodes, hooking game-created buttons, and receiving button events.
 
