@@ -41,7 +41,7 @@ call "%VSDIR%\VC\Auxiliary\Build\vcvarsall.bat" x64 >nul 2>&1
 echo.
 echo Building %MOD_NAME%.dll...
 
-cl /LD /O2 /GS- /W3 /D_CRT_SECURE_NO_WARNINGS /TC src\UIModTest.c src\mew_ui_api.c /Fe:%MOD_NAME%.dll /link user32.lib kernel32.lib
+cl /LD /O2 /GS- /W3 /D_CRT_SECURE_NO_WARNINGS /TC src\native\UIModTest.c src\native\mew_ui_api.c /Fe:%MOD_NAME%.dll /link user32.lib kernel32.lib
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
