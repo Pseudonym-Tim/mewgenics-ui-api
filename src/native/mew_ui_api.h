@@ -14,11 +14,29 @@ extern "C"
 {
 #endif
 
-#define MEW_UI_API_VERSION 1U
+#define MEW_UI_API_VERSION_MAJOR 1U
+#define MEW_UI_API_VERSION_MINOR 2U
+#define MEW_UI_API_VERSION_PATCH 0U
+
+#define MEW_UI_API_VERSION_STRING "1.2.0"
+
+#define MEW_UI_API_VERSION_ENCODE(major, minor, patch) \
+    (((major) * 10000U) + ((minor) * 100U) + (patch))
+
+#define MEW_UI_API_VERSION \
+    MEW_UI_API_VERSION_ENCODE( \
+        MEW_UI_API_VERSION_MAJOR, \
+        MEW_UI_API_VERSION_MINOR, \
+        MEW_UI_API_VERSION_PATCH)
+
 #define MEW_MAX_BUTTON_RECORDS 256U
 #define MEW_BUTTON_ROLE_MAX 128U
 #define MEW_TEXT_BUFFER_MAX 512U
-#define MEW_BUTTON_LABEL_TARGET_MAX 16U
+#define MEW_BUTTON_LABEL_TARGET_MAX 32U
+#define MEW_BUTTON_LABEL_RESYNC_TICKS 6U
+#define MEW_BUTTON_LABEL_KEY_MAX 128U
+#define MEW_BUTTON_LABEL_VALUE_MAX 96U
+#define MEW_BUTTON_LABEL_VALUE_COUNT_MAX 4U
 #define MEW_BUTTON_STATE_NODE_NAME_COUNT 6U
 
 #define MEW_RVA_MEWDIRECTOR_SINGLETON 0x013D1970ULL // This points at the process-wide MewDirector singleton used to walk loaded scenes...
@@ -44,6 +62,9 @@ extern "C"
 #define MEW_RVA_LOCALIZE_NARROW_KEY 0x0095E150ULL // This turns a localization key into the wide text the UI actually displays...
 #define MEW_RVA_SET_TEXT_ELEMENT_STRING 0x00986360ULL // This sets a text element from either a key or direct narrow text...
 #define MEW_RVA_SET_TEXT_ELEMENT_WIDE_STRING 0x00986470ULL // This sets a text element from an already-built wide string...
+#define MEW_RVA_MOVIECLIP_GOTO_AND_PLAY_FRAME 0x0099EC40ULL // This jumps a Scaleform/MovieClip-like UI node to a frame index and restarts playback...
+#define MEW_RVA_GET_AUDIO_SOURCE_FROM_COMPONENT 0x0004A2B0ULL // This resolves a component-owned AudioSource before playing UI/game SFX...
+#define MEW_RVA_AUDIO_SOURCE_PLAY_SOUND_EVENT 0x009574E0ULL // This plays one named sound event through an AudioSource...
 #define MEW_RVA_BUTTON_CONSTRUCT 0x001424E0ULL // This runs the real Button constructor after allocation...
 #define MEW_RVA_BUTTON_SETUP_FROM_NODE 0x00975DC0ULL // This copies setup data from a UI node into a Button component...
 #define MEW_RVA_BUTTON_UPDATE 0x00975F00ULL // This is Button update, where state changes and label swaps happen...
@@ -257,6 +278,49 @@ typedef struct MewComponent
 typedef void (__cdecl* MewButtonCallback)(void* button, MewButtonEvent event_type, MewButtonState old_state, MewButtonState new_state, void* user_data);
 typedef uint8_t (__cdecl* MewButtonCanInteractCallback)(void* button, uint8_t original_result, void* user_data);
 
+typedef struct MewUIToggleBinding MewUIToggleBinding;
+typedef struct MewUINavigationBinding MewUINavigationBinding;
+
+typedef void (__cdecl* MewUIToggleChangedCallback)(MewUIToggleBinding* binding, bool enabled, void* user_data);
+typedef void (__cdecl* MewUINavigationChangedCallback)(MewUINavigationBinding* binding, uint32_t index, const char* value, void* user_data);
+
+// Reusable binding for a two-state UI toggle/checkbox backed by an existing button node...
+struct MewUIToggleBinding
+{
+    const char* scene_name;
+    const char* node_name;
+    const char* role_name;
+    const char* off_state_prefix;
+    const char* on_state_prefix;
+    bool enabled;
+    void* button;
+    void* scene_manager;
+    uint8_t visual_synced;
+    MewUIToggleChangedCallback changed_callback;
+    void* user_data;
+};
+
+// Reusable binding for paired left/right buttons that cycle an index and update a localized value text node...
+struct MewUINavigationBinding
+{
+    const char* scene_name;
+    const char* left_node_name;
+    const char* right_node_name;
+    const char* value_node_name;
+    const char* left_role_name;
+    const char* right_role_name;
+    const char* value_text_key;
+    const char* const* values;
+    uint32_t value_count;
+    uint32_t index;
+    void* left_button;
+    void* right_button;
+    void* scene_manager;
+    uint8_t text_synced;
+    MewUINavigationChangedCallback changed_callback;
+    void* user_data;
+};
+
 typedef void (__cdecl* MewUITickCallback)(void* user_data);
 
 typedef enum MewUISceneRefreshResult
@@ -326,7 +390,12 @@ typedef struct MewButtonRecord
     uint8_t owned_by_ui;
     uint8_t click_from_hook_seen;
     uint8_t suppress_original_activate;
+    uint8_t label_override_kind;
+    uint8_t label_value_count;
+    uint8_t label_resync_ticks;
     char role_name[MEW_BUTTON_ROLE_MAX];
+    char label_key[MEW_BUTTON_LABEL_KEY_MAX];
+    char label_values[MEW_BUTTON_LABEL_VALUE_COUNT_MAX][MEW_BUTTON_LABEL_VALUE_MAX];
     void* scene_manager;
     void* context;
     void* root_node;
@@ -361,6 +430,9 @@ typedef void (__fastcall* MewFnDestroyWideString)(MewWideString* value);
 typedef MewWideString* (__fastcall* MewFnLocalizeNarrowKey)(void* localization_manager, MewWideString* output_string, MewNarrowString* key_string);
 typedef void* (__fastcall* MewFnSetTextElementString)(void* text_element, MewNarrowString* text, uint8_t use_localization_key, uint8_t commit_immediately);
 typedef void* (__fastcall* MewFnSetTextElementWideString)(void* text_element, MewWideString* text, uint8_t force_update_existing_text, uint8_t commit_immediately);
+typedef void (__fastcall* MewFnMovieClipGotoAndPlayFrame)(void* movie_clip, int32_t frame_index);
+typedef void* (__fastcall* MewFnGetAudioSourceFromComponent)(void* component);
+typedef void (__fastcall* MewFnAudioSourcePlaySoundEvent)(void* audio_source, MewNarrowString* event_name, double x, double y, double z, uint8_t routed);
 typedef void (__fastcall* MewFnButtonActivate)(void* button, uint8_t from_mouse);
 typedef uint8_t (__fastcall* MewFnButtonCanActivate)(void* button, int32_t button_index, uint8_t strict_mouse);
 typedef void (__fastcall* MewFnSceneReadyUpdate)(void* scene_manager);
@@ -420,6 +492,14 @@ int MewUI_SetTextElementFromLocalizationKey(void* text_element, const char* key)
 int MewUI_SetTextElementFromLocalizationKeyValue(void* text_element, const char* key, const char* value0);
 // Sets one text element from a localization key with multiple placeholder values...
 int MewUI_SetTextElementFromLocalizationKeyValues(void* text_element, const char* key, const char* const* values, uint32_t value_count);
+// Restarts one MovieClip-like UI node at a frame index...
+int MewUI_PlayMovieClipFrame(void* movie_clip, int32_t frame_index);
+// Finds a scene MovieClip-like node and restarts it at a frame index...
+int MewUI_PlayMovieClipInScene(const char* scene_name, const char* node_name, int32_t frame_index);
+// Resolves an AudioSource from a component and plays a named sound event...
+int MewUI_PlaySoundEventFromComponent(void* component, const char* event_name, double x, double y, double z, uint8_t routed);
+// Finds a scene node/component and plays a named sound event from its AudioSource...
+int MewUI_PlaySoundEventInScene(const char* scene_name, const char* node_name, const char* event_name, double x, double y, double z, uint8_t routed);
 // Finds a child text node under a root node and sets it from a key...
 int MewUI_SetTextChildFromLocalizationKey(void* root_node, const char* child_name, const char* key);
 // Finds a child text node and fills one localized placeholder...
@@ -468,6 +548,33 @@ void* MewUI_SetupButtonInScene(const MewNamedButtonCreateInfo* create_info, void
 void* MewUI_SetupButtonFromLocalizationKey(const char* scene_name, const char* node_name, const char* role_name, const char* label_key, MewButtonCallback callback, void* user_data, void** io_button, int* out_created);
 // Creates or reuses a button while leaving its label alone...
 void* MewUI_SetupButtonWithoutLabel(const char* scene_name, const char* node_name, const char* role_name, MewButtonCallback callback, void* user_data, void** io_button, int* out_created);
+// Initializes a reusable toggle binding...
+void MewUI_InitToggleBinding(MewUIToggleBinding* binding, const char* scene_name, const char* node_name, const char* role_name, bool initial_enabled, MewUIToggleChangedCallback changed_callback, void* user_data);
+void MewUI_InitToggleBindingWithStatePrefixes(MewUIToggleBinding* binding, const char* scene_name, const char* node_name, const char* role_name, const char* off_state_prefix, const char* on_state_prefix, bool initial_enabled, MewUIToggleChangedCallback changed_callback, void* user_data);
+// Creates or reuses a toggle button...
+void* MewUI_SetupToggle(MewUIToggleBinding* binding, int* out_created);
+// Creates or reuses a toggle button in scene manager...
+void* MewUI_SetupToggleInScene(MewUIToggleBinding* binding, void* scene_manager, int* out_created);
+// Sets a toggle binding value and refreshes its button state-node names...
+int MewUI_SetToggleValue(MewUIToggleBinding* binding, bool enabled);
+// Flips a toggle binding value and refreshes its button state-node names...
+int MewUI_ToggleValue(MewUIToggleBinding* binding);
+// Returns the current toggle value, or false for a null binding...
+bool MewUI_GetToggleValue(const MewUIToggleBinding* binding);
+// Initializes a reusable left/right navigation binding...
+void MewUI_InitNavigationBinding(MewUINavigationBinding* binding, const char* scene_name, const char* left_node_name, const char* right_node_name, const char* value_node_name, const char* left_role_name, const char* right_role_name, const char* value_text_key, const char* const* values, uint32_t value_count, uint32_t initial_index, MewUINavigationChangedCallback changed_callback, void* user_data);
+// Creates or reuses left/right navigation buttons and refreshes the value text...
+int MewUI_SetupNavigation(MewUINavigationBinding* binding, int* out_created_any);
+// Creates or reuses left/right navigation buttons in scene manager...
+int MewUI_SetupNavigationInScene(MewUINavigationBinding* binding, void* scene_manager, int* out_created_any);
+// Sets a navigation binding index with wrapping and refreshes the value text...
+int MewUI_SetNavigationIndex(MewUINavigationBinding* binding, uint32_t index);
+// Adds delta to the navigation binding index with wrapping and refreshes the value text...
+int MewUI_AdvanceNavigation(MewUINavigationBinding* binding, int32_t delta);
+// Refreshes a navigation binding value text from its current index...
+int MewUI_UpdateNavigationText(MewUINavigationBinding* binding);
+// Returns the current navigation value string, or NULL if unavailable...
+const char* MewUI_GetNavigationValue(const MewUINavigationBinding* binding);
 // Finds one tracked or scene-owned button by role name...
 void* MewUI_FindButtonByRole(void* scene_manager, const char* role_name);
 // Finds every matching button role up to the output buffer capacity...
@@ -490,6 +597,7 @@ int MewUI_GetButtonRoleName(void* button, char* out_buffer, size_t out_buffer_si
 MewButtonState MewUI_GetButtonState(void* button);
 // Writes the current and previous button state fields...
 int MewUI_SetButtonState(void* button, MewButtonState state);
+int MewUI_SetButtonStateNodeName(void* button, MewButtonState state, const char* state_node_name);
 // Sets a button label from a localization key...
 int MewUI_SetButtonLabelFromLocalizationKey(void* button, const char* key);
 // Sets a button label from a localization key with one value...

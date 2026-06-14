@@ -1,2 +1,4 @@
 TEST_BUTTON_TEXT,"Testing!",,,,
+TEST_BUTTON_TEXT_VALUE,"Clicks: {v0}",,,,
 TEST_TEXT,"Test!",,,,
+TEST_NAV_VALUE_TEXT,"{v0}",,,,

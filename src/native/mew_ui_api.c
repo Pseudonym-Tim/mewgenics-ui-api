@@ -68,6 +68,10 @@ static void MewUI_LogSceneReadyProbe(void* scene_manager, const MewNarrowString*
 static void MewUI_DispatchSceneReadyTick(void* scene_manager);
 static int MewUI_SetTextElementWideStringCopy(void* text_element, const MewWideString* text);
 static int MewUI_SetButtonLabelWideString(void* button, const MewWideString* text);
+static void MewUI_CacheButtonLabelText(void* button, const char* text);
+static void MewUI_CacheButtonLabelLocalizationValues(void* button, const char* key, const char* const* values, uint32_t value_count);
+static int MewUI_ReapplyButtonCachedLabel(MewButtonRecord* record);
+static void MewUI_ReapplyButtonCachedLabelIfNeeded(MewButtonRecord* record);
 static VOID CALLBACK MewUI_TimerProc(PVOID parameter, BOOLEAN timer_or_wait_fired);
 
 void MewUI_SetDebugLogsEnabled(bool enabled)
@@ -780,6 +784,7 @@ static void __fastcall MewUI_HookButtonActivate(void* button, uint8_t from_mouse
 
     record->click_from_hook_seen = 1U;
     MewUI_FireButtonCallback(record, MEW_BUTTON_EVENT_CLICK, tracked_state, new_state);
+    MewUI_ReapplyButtonCachedLabelIfNeeded(record);
 }
 
 // Installs hooks from the timer so loader-lock-sensitive work stays out of DllMain...
@@ -1952,6 +1957,148 @@ static int MewUI_SetButtonLabelWideString(void* button, const MewWideString* tex
     return 1;
 }
 
+static void MewUI_CacheButtonLabelText(void* button, const char* text)
+{
+    MewButtonRecord* record;
+
+    record = MewUI_GetButtonRecord(button);
+
+    if (!record)
+    {
+        return;
+    }
+
+    record->label_override_kind = 1U;
+    record->label_value_count = 0U;
+    record->label_key[0] = '\0';
+
+    if (text)
+    {
+        strncpy(record->label_values[0], text, sizeof(record->label_values[0]) - 1U);
+        record->label_values[0][sizeof(record->label_values[0]) - 1U] = '\0';
+    }
+    else
+    {
+        record->label_values[0][0] = '\0';
+    }
+
+    record->label_resync_ticks = MEW_BUTTON_LABEL_RESYNC_TICKS;
+}
+
+static void MewUI_CacheButtonLabelLocalizationValues(void* button, const char* key, const char* const* values, uint32_t value_count)
+{
+    MewButtonRecord* record;
+    uint32_t value_index;
+
+    record = MewUI_GetButtonRecord(button);
+
+    if (!record || !key)
+    {
+        return;
+    }
+
+    record->label_override_kind = 2U;
+    strncpy(record->label_key, key, sizeof(record->label_key) - 1U);
+    record->label_key[sizeof(record->label_key) - 1U] = '\0';
+
+    if (value_count > MEW_BUTTON_LABEL_VALUE_COUNT_MAX)
+    {
+        value_count = MEW_BUTTON_LABEL_VALUE_COUNT_MAX;
+    }
+
+    record->label_value_count = (uint8_t)value_count;
+
+    for (value_index = 0U; value_index < MEW_BUTTON_LABEL_VALUE_COUNT_MAX; ++value_index)
+    {
+        record->label_values[value_index][0] = '\0';
+
+        if (values && value_index < value_count && values[value_index])
+        {
+            strncpy(record->label_values[value_index], values[value_index], sizeof(record->label_values[value_index]) - 1U);
+            record->label_values[value_index][sizeof(record->label_values[value_index]) - 1U] = '\0';
+        }
+    }
+
+    record->label_resync_ticks = MEW_BUTTON_LABEL_RESYNC_TICKS;
+}
+
+static int MewUI_ReapplyButtonCachedLabel(MewButtonRecord* record)
+{
+    const char* values[MEW_BUTTON_LABEL_VALUE_COUNT_MAX];
+    MewWideString localized_string;
+    MewWideString formatted_string;
+    MewWideString direct_string;
+    uint32_t value_index;
+    int result;
+
+    if (!record || !record->button || record->label_override_kind == 0U)
+    {
+        return 0;
+    }
+
+    result = 0;
+
+    if (record->label_override_kind == 1U)
+    {
+        memset(&direct_string, 0, sizeof(direct_string));
+
+        if (MewUI_InitWideStringFromText(&direct_string, record->label_values[0]))
+        {
+            result = MewUI_SetButtonLabelWideString(record->button, &direct_string);
+            MewUI_FreeWideStringFromText(&direct_string);
+        }
+
+        return result;
+    }
+
+    if (record->label_override_kind != 2U || record->label_key[0] == '\0')
+    {
+        return 0;
+    }
+
+    for (value_index = 0U; value_index < MEW_BUTTON_LABEL_VALUE_COUNT_MAX; ++value_index)
+    {
+        values[value_index] = record->label_values[value_index];
+    }
+
+    memset(&localized_string, 0, sizeof(localized_string));
+    memset(&formatted_string, 0, sizeof(formatted_string));
+
+    if (!MewUI_LocalizeKeyToWideString(record->label_key, &localized_string))
+    {
+        return 0;
+    }
+
+    if (record->label_value_count == 0U)
+    {
+        result = MewUI_SetButtonLabelWideString(record->button, &localized_string);
+    }
+    else if (MewUI_FormatWideStringValues(&localized_string, values, (uint32_t)record->label_value_count, &formatted_string))
+    {
+        result = MewUI_SetButtonLabelWideString(record->button, &formatted_string);
+        MewUI_FreeWideStringFromText(&formatted_string);
+    }
+
+    MewUI_DestroyEngineWideString(&localized_string);
+    return result;
+}
+
+static void MewUI_ReapplyButtonCachedLabelIfNeeded(MewButtonRecord* record)
+{
+    if (!record || record->label_override_kind == 0U || record->label_resync_ticks == 0U)
+    {
+        return;
+    }
+
+    if (MewUI_ReapplyButtonCachedLabel(record))
+    {
+        record->label_resync_ticks = (uint8_t)(record->label_resync_ticks - 1U);
+    }
+    else
+    {
+        record->label_resync_ticks = 0U;
+    }
+}
 
 // Shared text setter where the flag decides whether text means a key or direct text...
 static int MewUI_SetTextElementInternal(void* text_element, const char* text, uint8_t use_localization_key, void* scene_manager)
@@ -2017,6 +2164,157 @@ static int MewUI_SetTextElementInternal(void* text_element, const char* text, ui
     }
 
     return result;
+}
+
+int MewUI_PlayMovieClipFrame(void* movie_clip, int32_t frame_index)
+{
+    MewFnMovieClipGotoAndPlayFrame goto_and_play;
+
+    if (!movie_clip)
+    {
+        return 0;
+    }
+
+    goto_and_play = (MewFnMovieClipGotoAndPlayFrame)MewUI_Address(MEW_RVA_MOVIECLIP_GOTO_AND_PLAY_FRAME);
+    
+    if (!goto_and_play)
+    {
+        return 0;
+    }
+
+    __try
+    {
+        goto_and_play(movie_clip, frame_index);
+        *(uint8_t*)((uint8_t*)movie_clip + 0x09U) |= 0x02U;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        MewUI_APIDebugLog("PlayMovieClipFrame failed: movieClip=%p frame=%d", movie_clip, frame_index);
+        return 0;
+    }
+
+    return 1;
+}
+
+int MewUI_PlayMovieClipInScene(const char* scene_name, const char* node_name, int32_t frame_index)
+{
+    void* scene_manager;
+    void* movie_clip;
+
+    if (!scene_name || !node_name)
+    {
+        return 0;
+    }
+
+    scene_manager = MewUI_GetSceneByName(scene_name);
+
+    if (!scene_manager || MewUI_IsSceneDestroying(scene_manager))
+    {
+        return 0;
+    }
+
+    movie_clip = MewUI_FindNodeInSceneByName(scene_manager, node_name);
+    return MewUI_PlayMovieClipFrame(movie_clip, frame_index);
+}
+
+int MewUI_PlaySoundEventFromComponent(void* component, const char* event_name, double x, double y, double z, uint8_t routed)
+{
+    MewFnGetAudioSourceFromComponent get_audio_source;
+    MewFnAudioSourcePlaySoundEvent play_sound_event;
+    MewFnInitNarrowString init_string;
+    MewFnDestroyNarrowString destroy_string;
+    MewNarrowString sound_event;
+    void* audio_source;
+    uint8_t sound_event_initialized;
+    int result;
+
+    if (!component || !event_name || !event_name[0])
+    {
+        return 0;
+    }
+
+    get_audio_source = (MewFnGetAudioSourceFromComponent)MewUI_Address(MEW_RVA_GET_AUDIO_SOURCE_FROM_COMPONENT);
+    play_sound_event = (MewFnAudioSourcePlaySoundEvent)MewUI_Address(MEW_RVA_AUDIO_SOURCE_PLAY_SOUND_EVENT);
+    init_string = (MewFnInitNarrowString)MewUI_Address(MEW_RVA_INIT_NARROW_STRING);
+    destroy_string = (MewFnDestroyNarrowString)MewUI_Address(MEW_RVA_DESTROY_NARROW_STRING);
+
+    if (!get_audio_source || !play_sound_event || !init_string || !destroy_string)
+    {
+        return 0;
+    }
+
+    audio_source = NULL;
+    memset(&sound_event, 0, sizeof(sound_event));
+    sound_event_initialized = 0U;
+    result = 0;
+
+    __try
+    {
+        audio_source = get_audio_source(component);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        audio_source = NULL;
+    }
+
+    if (!audio_source)
+    {
+        MewUI_APIDebugLog("PlaySoundEventFromComponent skipped: component=%p event='%s' had no AudioSource", component, event_name);
+        return 0;
+    }
+
+    __try
+    {
+        init_string(&sound_event, event_name);
+        sound_event_initialized = 1U;
+        play_sound_event(audio_source, &sound_event, x, y, z, routed);
+        result = 1;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        MewUI_APIDebugLog("PlaySoundEventFromComponent failed: component=%p audioSource=%p event='%s' xyz=(%.3f,%.3f,%.3f) routed=%u", component, audio_source, event_name, x, y, z, (unsigned int)routed);
+        result = 0;
+    }
+
+    if (sound_event_initialized)
+    {
+        __try
+        {
+            destroy_string(&sound_event);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
+    }
+
+    return result;
+}
+
+int MewUI_PlaySoundEventInScene(const char* scene_name, const char* node_name, const char* event_name, double x, double y, double z, uint8_t routed)
+{
+    void* scene_manager;
+    void* component;
+
+    if (!scene_name || !node_name || !event_name)
+    {
+        return 0;
+    }
+
+    scene_manager = MewUI_GetSceneByName(scene_name);
+
+    if (!scene_manager || MewUI_IsSceneDestroying(scene_manager))
+    {
+        return 0;
+    }
+
+    component = MewUI_FindNodeInSceneByName(scene_manager, node_name);
+
+    if (MewUI_PlaySoundEventFromComponent(component, event_name, x, y, z, routed))
+    {
+        return 1;
+    }
+
+    return MewUI_PlaySoundEventFromComponent(scene_manager, event_name, x, y, z, routed);
 }
 
 int MewUI_SetTextElementFromLocalizationKey(void* text_element, const char* key)
@@ -2197,6 +2495,41 @@ int MewUI_SetButtonState(void* button, MewButtonState state)
     __try
     {
         *(int32_t*)((uint8_t*)button + MEW_OFF_BUTTON_STATE) = (int32_t)state;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+int MewUI_SetButtonStateNodeName(void* button, MewButtonState state, const char* state_node_name)
+{
+    MewFnAssignNarrowStringLiteral assign_string;
+    MewNarrowString* target_string;
+    size_t length;
+    uint32_t state_index;
+
+    if (!button || !state_node_name || state < MEW_BUTTON_STATE_IDLE || state > MEW_BUTTON_STATE_TRANSITION)
+    {
+        return 0;
+    }
+
+    assign_string = (MewFnAssignNarrowStringLiteral)MewUI_Address(MEW_RVA_ASSIGN_NARROW_STRING_LITERAL);
+
+    if (!assign_string)
+    {
+        return 0;
+    }
+
+    length = strlen(state_node_name);
+    state_index = (uint32_t)state;
+
+    __try
+    {
+        target_string = (MewNarrowString*)((uint8_t*)button + MEW_OFF_BUTTON_STATE_NODE_NAMES + (state_index * sizeof(MewNarrowString)));
+        assign_string(target_string, state_node_name, (uint64_t)length);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2395,6 +2728,9 @@ int MewUI_SetButtonLabelText(void* button, const char* text)
 
     result = MewUI_SetButtonLabelWideString(button, &label_string);
     MewUI_FreeWideStringFromText(&label_string);
+
+    MewUI_CacheButtonLabelText(button, text);
+
     return result;
 }
 
@@ -2419,6 +2755,7 @@ int MewUI_SetButtonLabelFromLocalizationKey(void* button, const char* key)
     if (MewUI_LocalizeKeyToWideString(key, &localized_string))
     {
         result = MewUI_SetButtonLabelWideString(button, &localized_string);
+        MewUI_CacheButtonLabelLocalizationValues(button, key, NULL, 0U);
         MewUI_DestroyEngineWideString(&localized_string);
     }
 
@@ -2456,6 +2793,7 @@ int MewUI_SetButtonLabelFromLocalizationKeyValues(void* button, const char* key,
     if (MewUI_FormatWideStringValues(&localized_string, values, value_count, &formatted_string))
     {
         result = MewUI_SetButtonLabelWideString(button, &formatted_string);
+        MewUI_CacheButtonLabelLocalizationValues(button, key, values, value_count);
         MewUI_FreeWideStringFromText(&formatted_string);
     }
 
@@ -3080,6 +3418,482 @@ void* MewUI_SetupButtonWithoutLabel(const char* scene_name, const char* node_nam
     create_info.user_data = user_data;
 
     return MewUI_SetupButtonInScene(&create_info, io_button, out_created);
+}
+
+
+static void __cdecl MewUI_ToggleButtonCallback(void* button, MewButtonEvent event_type, MewButtonState old_state, MewButtonState new_state, void* user_data)
+{
+    MewUIToggleBinding* binding;
+
+    (void)button;
+    (void)old_state;
+    (void)new_state;
+
+    if (event_type != MEW_BUTTON_EVENT_CLICK || !user_data)
+    {
+        return;
+    }
+
+    binding = (MewUIToggleBinding*)user_data;
+
+    if (MewUI_ToggleValue(binding) && binding->changed_callback)
+    {
+        binding->changed_callback(binding, binding->enabled, binding->user_data);
+    }
+}
+
+void MewUI_InitToggleBinding(MewUIToggleBinding* binding, const char* scene_name, const char* node_name, const char* role_name, bool initial_enabled, MewUIToggleChangedCallback changed_callback, void* user_data)
+{
+    MewUI_InitToggleBindingWithStatePrefixes(binding, scene_name, node_name, role_name, "off_", "on_", initial_enabled, changed_callback, user_data);
+}
+
+void MewUI_InitToggleBindingWithStatePrefixes(MewUIToggleBinding* binding, const char* scene_name, const char* node_name, const char* role_name, const char* off_state_prefix, const char* on_state_prefix, bool initial_enabled, MewUIToggleChangedCallback changed_callback, void* user_data)
+{
+    if (!binding)
+    {
+        return;
+    }
+
+    memset(binding, 0, sizeof(*binding));
+    binding->scene_name = scene_name;
+    binding->node_name = node_name;
+    binding->role_name = role_name;
+    binding->off_state_prefix = off_state_prefix ? off_state_prefix : "off_";
+    binding->on_state_prefix = on_state_prefix ? on_state_prefix : "on_";
+    binding->enabled = initial_enabled;
+    binding->changed_callback = changed_callback;
+    binding->user_data = user_data;
+}
+
+void* MewUI_SetupToggle(MewUIToggleBinding* binding, int* out_created)
+{
+    void* scene_manager;
+
+    if (out_created)
+    {
+        *out_created = 0;
+    }
+
+    if (!binding || !binding->scene_name)
+    {
+        return NULL;
+    }
+
+    scene_manager = MewUI_GetSceneByName(binding->scene_name);
+    return MewUI_SetupToggleInScene(binding, scene_manager, out_created);
+}
+
+void* MewUI_SetupToggleInScene(MewUIToggleBinding* binding, void* scene_manager, int* out_created)
+{
+    MewButtonCreateInfo create_info;
+    void* button;
+
+    if (out_created)
+    {
+        *out_created = 0;
+    }
+
+    if (!binding || !scene_manager || !binding->node_name || !binding->role_name)
+    {
+        return NULL;
+    }
+
+    if (MewUI_IsSceneDestroying(scene_manager))
+    {
+        return NULL;
+    }
+
+    binding->scene_manager = scene_manager;
+
+    memset(&create_info, 0, sizeof(create_info));
+    create_info.scene_manager = scene_manager;
+    create_info.node_name = binding->node_name;
+    create_info.role_name = binding->role_name;
+    create_info.label_text = "";
+    create_info.enabled = 1U;
+    create_info.activate_enabled = 1U;
+    create_info.strict_mouse = 0U;
+    create_info.interact_override = MEW_BUTTON_INTERACT_FORCE_ENABLED;
+    create_info.callback = MewUI_ToggleButtonCallback;
+    create_info.user_data = binding;
+
+    button = MewUI_SetupButtonFromNode(&create_info, &binding->button, out_created);
+
+    if (button && !binding->visual_synced)
+    {
+        MewUI_SetToggleValue(binding, binding->enabled);
+    }
+
+    return button;
+}
+
+static int MewUI_BuildToggleStateName(char* buffer, size_t buffer_size, const char* prefix, const char* suffix)
+{
+    int written;
+
+    if (!buffer || buffer_size == 0U || !prefix || !suffix)
+    {
+        return 0;
+    }
+
+    written = snprintf(buffer, buffer_size, "%s%s", prefix, suffix);
+    buffer[buffer_size - 1U] = '\0';
+    return (written > 0 && (size_t)written < buffer_size) ? 1 : 0;
+}
+
+static int MewUI_ApplyToggleStateNodeNames(MewUIToggleBinding* binding, bool enabled)
+{
+    const char* prefix;
+    char state_name[MEW_TEXT_BUFFER_MAX];
+    int result;
+
+    if (!binding || !binding->button)
+    {
+        return 0;
+    }
+
+    prefix = enabled ? binding->on_state_prefix : binding->off_state_prefix;
+
+    if (!prefix)
+    {
+        prefix = enabled ? "on_" : "off_";
+    }
+
+    result = 1;
+
+    if (MewUI_BuildToggleStateName(state_name, sizeof(state_name), prefix, "up"))
+    {
+        result &= MewUI_SetButtonStateNodeName(binding->button, MEW_BUTTON_STATE_IDLE, state_name);
+        result &= MewUI_SetButtonStateNodeName(binding->button, MEW_BUTTON_STATE_SELECTED, state_name);
+        result &= MewUI_SetButtonStateNodeName(binding->button, MEW_BUTTON_STATE_TRANSITION, state_name);
+    }
+    else
+    {
+        result = 0;
+    }
+
+    if (MewUI_BuildToggleStateName(state_name, sizeof(state_name), prefix, "over"))
+    {
+        result &= MewUI_SetButtonStateNodeName(binding->button, MEW_BUTTON_STATE_HOVERED, state_name);
+    }
+    else
+    {
+        result = 0;
+    }
+
+    if (MewUI_BuildToggleStateName(state_name, sizeof(state_name), prefix, "down"))
+    {
+        result &= MewUI_SetButtonStateNodeName(binding->button, MEW_BUTTON_STATE_PRESSED, state_name);
+    }
+    else
+    {
+        result = 0;
+    }
+
+    if (MewUI_BuildToggleStateName(state_name, sizeof(state_name), prefix, "disabled"))
+    {
+        result &= MewUI_SetButtonStateNodeName(binding->button, MEW_BUTTON_STATE_DISABLED, state_name);
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+int MewUI_SetToggleValue(MewUIToggleBinding* binding, bool enabled)
+{
+    int result;
+
+    if (!binding || !binding->scene_name || !binding->node_name)
+    {
+        return 0;
+    }
+
+    if (binding->visual_synced && binding->enabled == enabled)
+    {
+        return 1;
+    }
+
+    binding->enabled = enabled;
+    result = 0;
+
+    if (binding->button)
+    {
+        result = MewUI_ApplyToggleStateNodeNames(binding, enabled);
+    }
+
+    if (result)
+    {
+        binding->visual_synced = 1U;
+    }
+
+    return result;
+}
+
+int MewUI_ToggleValue(MewUIToggleBinding* binding)
+{
+    if (!binding)
+    {
+        return 0;
+    }
+
+    return MewUI_SetToggleValue(binding, !binding->enabled);
+}
+
+bool MewUI_GetToggleValue(const MewUIToggleBinding* binding)
+{
+    return binding ? binding->enabled : false;
+}
+
+static uint32_t MewUI_WrapNavigationIndex(uint32_t index, int32_t delta, uint32_t count)
+{
+    int32_t signed_index;
+
+    if (count == 0U)
+    {
+        return 0U;
+    }
+
+    signed_index = (int32_t)index + delta;
+
+    while (signed_index < 0)
+    {
+        signed_index += (int32_t)count;
+    }
+
+    return (uint32_t)signed_index % count;
+}
+
+static void __cdecl MewUI_NavigationLeftButtonCallback(void* button, MewButtonEvent event_type, MewButtonState old_state, MewButtonState new_state, void* user_data)
+{
+    MewUINavigationBinding* binding;
+
+    (void)button;
+    (void)old_state;
+    (void)new_state;
+
+    if (event_type != MEW_BUTTON_EVENT_CLICK || !user_data)
+    {
+        return;
+    }
+
+    binding = (MewUINavigationBinding*)user_data;
+
+    if (MewUI_AdvanceNavigation(binding, -1) && binding->changed_callback)
+    {
+        binding->changed_callback(binding, binding->index, MewUI_GetNavigationValue(binding), binding->user_data);
+    }
+}
+
+static void __cdecl MewUI_NavigationRightButtonCallback(void* button, MewButtonEvent event_type, MewButtonState old_state, MewButtonState new_state, void* user_data)
+{
+    MewUINavigationBinding* binding;
+
+    (void)button;
+    (void)old_state;
+    (void)new_state;
+
+    if (event_type != MEW_BUTTON_EVENT_CLICK || !user_data)
+    {
+        return;
+    }
+
+    binding = (MewUINavigationBinding*)user_data;
+
+    if (MewUI_AdvanceNavigation(binding, 1) && binding->changed_callback)
+    {
+        binding->changed_callback(binding, binding->index, MewUI_GetNavigationValue(binding), binding->user_data);
+    }
+}
+
+void MewUI_InitNavigationBinding(MewUINavigationBinding* binding, const char* scene_name, const char* left_node_name, const char* right_node_name, const char* value_node_name, const char* left_role_name, const char* right_role_name, const char* value_text_key, const char* const* values, uint32_t value_count, uint32_t initial_index, MewUINavigationChangedCallback changed_callback, void* user_data)
+{
+    if (!binding)
+    {
+        return;
+    }
+
+    memset(binding, 0, sizeof(*binding));
+    binding->scene_name = scene_name;
+    binding->left_node_name = left_node_name;
+    binding->right_node_name = right_node_name;
+    binding->value_node_name = value_node_name;
+    binding->left_role_name = left_role_name;
+    binding->right_role_name = right_role_name;
+    binding->value_text_key = value_text_key;
+    binding->values = values;
+    binding->value_count = value_count;
+    binding->index = value_count ? (initial_index % value_count) : 0U;
+    binding->changed_callback = changed_callback;
+    binding->user_data = user_data;
+}
+
+int MewUI_SetupNavigation(MewUINavigationBinding* binding, int* out_created_any)
+{
+    void* scene_manager;
+
+    if (out_created_any)
+    {
+        *out_created_any = 0;
+    }
+
+    if (!binding || !binding->scene_name)
+    {
+        return 0;
+    }
+
+    scene_manager = MewUI_GetSceneByName(binding->scene_name);
+    return MewUI_SetupNavigationInScene(binding, scene_manager, out_created_any);
+}
+
+int MewUI_SetupNavigationInScene(MewUINavigationBinding* binding, void* scene_manager, int* out_created_any)
+{
+    MewButtonCreateInfo create_info;
+    int left_created;
+    int right_created;
+    void* left_button;
+    void* right_button;
+
+    if (out_created_any)
+    {
+        *out_created_any = 0;
+    }
+
+    if (!binding || !scene_manager || !binding->left_node_name || !binding->right_node_name || !binding->value_node_name || !binding->left_role_name || !binding->right_role_name || !binding->value_text_key || !binding->values || binding->value_count == 0U)
+    {
+        return 0;
+    }
+
+    if (MewUI_IsSceneDestroying(scene_manager))
+    {
+        return 0;
+    }
+
+    binding->scene_manager = scene_manager;
+
+    left_created = 0;
+    right_created = 0;
+
+    memset(&create_info, 0, sizeof(create_info));
+    create_info.scene_manager = scene_manager;
+    create_info.node_name = binding->left_node_name;
+    create_info.role_name = binding->left_role_name;
+    create_info.label_text = "";
+    create_info.enabled = 1U;
+    create_info.activate_enabled = 1U;
+    create_info.strict_mouse = 0U;
+    create_info.interact_override = MEW_BUTTON_INTERACT_FORCE_ENABLED;
+    create_info.callback = MewUI_NavigationLeftButtonCallback;
+    create_info.user_data = binding;
+    left_button = MewUI_SetupButtonFromNode(&create_info, &binding->left_button, &left_created);
+
+    memset(&create_info, 0, sizeof(create_info));
+    create_info.scene_manager = scene_manager;
+    create_info.node_name = binding->right_node_name;
+    create_info.role_name = binding->right_role_name;
+    create_info.label_text = "";
+    create_info.enabled = 1U;
+    create_info.activate_enabled = 1U;
+    create_info.strict_mouse = 0U;
+    create_info.interact_override = MEW_BUTTON_INTERACT_FORCE_ENABLED;
+    create_info.callback = MewUI_NavigationRightButtonCallback;
+    create_info.user_data = binding;
+    right_button = MewUI_SetupButtonFromNode(&create_info, &binding->right_button, &right_created);
+
+    if (out_created_any)
+    {
+        *out_created_any = (left_created || right_created) ? 1 : 0;
+    }
+
+    if (!left_button || !right_button)
+    {
+        return 0;
+    }
+
+    if (!binding->text_synced)
+    {
+        return MewUI_SetNavigationIndex(binding, binding->index);
+    }
+
+    return 1;
+}
+
+int MewUI_SetNavigationIndex(MewUINavigationBinding* binding, uint32_t index)
+{
+    uint32_t next_index;
+
+    if (!binding || !binding->values || binding->value_count == 0U)
+    {
+        return 0;
+    }
+
+    next_index = index % binding->value_count;
+
+    if (binding->text_synced && binding->index == next_index)
+    {
+        return 1;
+    }
+
+    binding->index = next_index;
+    return MewUI_UpdateNavigationText(binding);
+}
+
+int MewUI_AdvanceNavigation(MewUINavigationBinding* binding, int32_t delta)
+{
+    if (!binding || !binding->values || binding->value_count == 0U)
+    {
+        return 0;
+    }
+
+    binding->index = MewUI_WrapNavigationIndex(binding->index, delta, binding->value_count);
+    binding->text_synced = 0U;
+    return MewUI_UpdateNavigationText(binding);
+}
+
+int MewUI_UpdateNavigationText(MewUINavigationBinding* binding)
+{
+    const char* value;
+    int result;
+
+    if (!binding || !binding->scene_name || !binding->value_node_name || !binding->value_text_key)
+    {
+        return 0;
+    }
+
+    value = MewUI_GetNavigationValue(binding);
+
+    if (!value)
+    {
+        return 0;
+    }
+
+    if (binding->scene_manager && !MewUI_IsSceneDestroying(binding->scene_manager))
+    {
+        result = MewUI_SetTextInSceneFromLocalizationKeyValue(binding->scene_manager, binding->value_node_name, binding->value_text_key, value);
+    }
+    else
+    {
+        result = MewUI_SetTextFromLocalizationKeyValue(binding->scene_name, binding->value_node_name, binding->value_text_key, value);
+    }
+
+    if (result)
+    {
+        binding->text_synced = 1U;
+    }
+
+    return result;
+}
+
+const char* MewUI_GetNavigationValue(const MewUINavigationBinding* binding)
+{
+    if (!binding || !binding->values || binding->value_count == 0U)
+    {
+        return NULL;
+    }
+
+    return binding->values[binding->index % binding->value_count];
 }
 
 static int MewUI_SetTextInSceneInternal(void* scene_manager, const char* child_name, const char* text, uint8_t use_localization_key)
@@ -4493,9 +5307,11 @@ void MewUI_Tick(void)
 
         if (old_state == new_state)
         {
+            MewUI_ReapplyButtonCachedLabelIfNeeded(record);
             continue;
         }
 
+        MewUI_ReapplyButtonCachedLabel(record);
         record->last_state = new_state;
         MewUI_FireButtonCallback(record, MEW_BUTTON_EVENT_STATE_CHANGED, old_state, new_state);
 
@@ -4520,6 +5336,7 @@ void MewUI_Tick(void)
             if (!record->click_from_hook_seen && (new_state == MEW_BUTTON_STATE_HOVERED || new_state == MEW_BUTTON_STATE_DISABLED))
             {
                 MewUI_FireButtonCallback(record, MEW_BUTTON_EVENT_CLICK, old_state, new_state);
+                MewUI_ReapplyButtonCachedLabelIfNeeded(record);
             }
             else if (new_state == MEW_BUTTON_STATE_IDLE)
             {
@@ -4533,5 +5350,7 @@ void MewUI_Tick(void)
         {
             MewUI_FireButtonCallback(record, MEW_BUTTON_EVENT_DISABLED, old_state, new_state);
         }
+
+        MewUI_ReapplyButtonCachedLabelIfNeeded(record);
     }
 }
