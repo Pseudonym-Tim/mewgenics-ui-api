@@ -52,6 +52,29 @@ The current API exposes all kinds of scene, text, button, and lifecycle helpers!
 | `MewUI_ClearButtonInteractOverride` | Returns a tracked button to the game's default interactability result |
 | `MewUI_GetButtonEventName` | Returns a readable button event name for logs |
 | `MewUI_GetButtonStateName` | Returns a readable button state name for logs |
+| `MewUIToggleBinding` | Describes a reusable toggle/checkbox binding |
+| `MewUIToggleChangedCallback` | Receives toggle value-change notifications |
+| `MewUI_InitToggleBinding` | Initializes a toggle binding |
+| `MewUI_InitToggleBindingWithStatePrefixes` | Initializes an `on_`/`off_` state-prefix toggle binding |
+| `MewUI_SetupToggle` | Creates or binds a toggle by scene name |
+| `MewUI_SetupToggleInScene` | Creates or binds a toggle using an already-resolved scene manager |
+| `MewUI_SetToggleValue` | Sets a toggle value |
+| `MewUI_ToggleValue` | Flips a toggle value |
+| `MewUI_GetToggleValue` | Reads the current toggle value |
+| `MewUINavigationBinding` | Describes a left/right navigation binding |
+| `MewUINavigationChangedCallback` | Receives navigation value-change notifications |
+| `MewUI_InitNavigationBinding` | Initializes a left/right navigation binding |
+| `MewUI_SetupNavigation` | Creates or binds left/right navigation controls by scene name |
+| `MewUI_SetupNavigationInScene` | Creates or binds left/right navigation controls using an already-resolved scene manager |
+| `MewUI_SetNavigationIndex` | Sets the navigation selection index |
+| `MewUI_AdvanceNavigation` | Moves the navigation selection left or right |
+| `MewUI_UpdateNavigationText` | Refreshes the navigation value label from localization |
+| `MewUI_GetNavigationValue` | Reads the current navigation value string |
+| `MewUI_SetButtonStateNodeName` | Remaps a button state's node name at runtime, such as for toggles |
+| `MewUI_PlayMovieClipFrame` | Restarts a MovieClip UI node at a frame index |
+| `MewUI_PlayMovieClipInScene` | Finds a scene MovieClip node and restarts it at a frame index |
+| `MewUI_PlaySoundEventFromComponent` | Plays a sound event using an AudioSource resolved from a UI component |
+| `MewUI_PlaySoundEventInScene` | Finds a scene component and plays a sound event from it |
 
 Include `mew_ui_api.h` and compile `mew_ui_api.c` into your mod. The API itself depends on `mewjector.h` for runtime Mewjector resolution.
 
@@ -436,6 +459,219 @@ static void ClearExampleButtonInteractOverride(void)
 }
 ```
 
+## Toggles/Checkboxes
+
+Toggles wrap a button node and keep its visual state synchronized with a `bool`. For checkboxes that use `off_`/`on_` state-node names, initialize the binding once with `MewUI_InitToggleBindingWithStatePrefixes`, then call `MewUI_SetupToggle`.
+
+```c
+static MewUIToggleBinding g_exampleToggle;
+static bool g_toggleBindingInitialized = false;
+static bool g_toggleReady = false;
+
+static void __cdecl ExampleToggleChangedCallback(MewUIToggleBinding* binding, bool enabled, void* userData)
+{
+    (void)userData;
+
+    MewUI_LogMessage("Toggle changed: enabled=%s", enabled ? "true" : "false");
+
+    // Optional: play a click sound from the toggle's cached button component...
+    MewUI_PlaySoundEventFromComponent(binding ? binding->button : NULL, "MapZoomerCoin_End", 1.0, 1.0, 0.0, 0U);
+}
+
+static void InitExampleToggle(void)
+{
+    if (g_toggleBindingInitialized)
+    {
+        return;
+    }
+
+    MewUI_InitToggleBindingWithStatePrefixes(
+        &g_exampleToggle,
+        "House",
+        "uitest_checkbox",
+        "UITest_Toggle",
+        "off_",
+        "on_",
+        false,
+        ExampleToggleChangedCallback,
+        NULL);
+
+    g_toggleBindingInitialized = true;
+}
+
+static void SetupExampleToggle(void)
+{
+    int created;
+    void* button;
+
+    InitExampleToggle();
+
+    created = 0;
+    button = MewUI_SetupToggle(&g_exampleToggle, &created);
+
+    if (!button)
+    {
+        g_toggleReady = false;
+        return;
+    }
+
+    if (created)
+    {
+        MewUI_LogMessage("Toggle created: button=%p value=%s", button, MewUI_GetToggleValue(&g_exampleToggle) ? "true" : "false");
+    }
+    else if (!g_toggleReady)
+    {
+        MewUI_LogMessage("Toggle ready: button=%p value=%s", button, MewUI_GetToggleValue(&g_exampleToggle) ? "true" : "false");
+    }
+
+    g_toggleReady = true;
+}
+```
+
+Set or flip a toggle programmatically when you need to sync it from config or gameplay state:
+
+```c
+MewUI_SetToggleValue(&g_exampleToggle, true);
+MewUI_ToggleValue(&g_exampleToggle);
+```
+
+## Navigations
+
+Navigation bindings create a paired left/right selector and update a value text node from localization. The current value string is passed to your callback and can also be read later with `MewUI_GetNavigationValue`.
+
+```c
+static const char* const g_navValues[] =
+{
+    "First",
+    "Second",
+    "Third"
+};
+
+static MewUINavigationBinding g_exampleNav;
+static bool g_navigationBindingInitialized = false;
+static bool g_navigationReady = false;
+
+static void __cdecl ExampleNavigationChangedCallback(MewUINavigationBinding* binding, uint32_t index, const char* value, void* userData)
+{
+    (void)binding;
+    (void)userData;
+
+    MewUI_LogMessage("Navigation changed: index=%u value=%s", (unsigned int)index, value ? value : "");
+    MewUI_PlaySoundEventInScene("House", "ui_nav_lf", "MapZoomerCoin_End", 1.0, 1.0, 0.0, 0U);
+}
+
+static void InitExampleNavigation(void)
+{
+    if (g_navigationBindingInitialized)
+    {
+        return;
+    }
+
+    MewUI_InitNavigationBinding(
+        &g_exampleNav,
+        "House",
+        "ui_nav_lf",
+        "ui_nav_rgt",
+        "ui_value",
+        "UITest_Nav_Left",
+        "UITest_Nav_Right",
+        "UITEST_NAV_VALUE_TEXT",
+        g_navValues,
+        (uint32_t)(sizeof(g_navValues) / sizeof(g_navValues[0])),
+        0U,
+        ExampleNavigationChangedCallback,
+        NULL);
+
+    g_navigationBindingInitialized = true;
+}
+
+static void SetupExampleNavigation(void)
+{
+    int createdAny;
+    int ready;
+
+    InitExampleNavigation();
+
+    createdAny = 0;
+    ready = MewUI_SetupNavigation(&g_exampleNav, &createdAny);
+
+    if (!ready)
+    {
+        g_navigationReady = false;
+        return;
+    }
+
+    if (createdAny)
+    {
+        MewUI_LogMessage("Navigation created: value=%s", MewUI_GetNavigationValue(&g_exampleNav));
+    }
+    else if (!g_navigationReady)
+    {
+        MewUI_LogMessage("Navigation ready: value=%s", MewUI_GetNavigationValue(&g_exampleNav));
+    }
+
+    g_navigationReady = true;
+}
+```
+
+Example `combined.csv.append` localization text for the navigation value label:
+
+```text
+UITEST_NAV_VALUE_TEXT,"Value: {v0}",,,,
+```
+
+You can also change the selection from code:
+
+```c
+MewUI_SetNavigationIndex(&g_exampleNav, 2U);
+MewUI_AdvanceNavigation(&g_exampleNav, -1);
+MewUI_UpdateNavigationText(&g_exampleNav);
+```
+
+## MovieClip Animation
+
+Use `MewUI_PlayMovieClipInScene` when you know the scene and instance name. The helper finds the node, jumps it to the requested frame, and restarts playback.
+
+```c
+static void PlayExamplePulse(void)
+{
+    if (!MewUI_PlayMovieClipInScene("House", "coin_pulse", 1))
+    {
+        MewUI_LogMessage("Could not play MovieClip animation for coin_pulse");
+    }
+}
+```
+
+If you already have the MovieClip node pointer, use `MewUI_PlayMovieClipFrame` directly:
+
+```c
+MewUI_PlayMovieClipFrame(movieClipNode, 1);
+```
+
+## Sound Events
+
+Use `MewUI_PlaySoundEventFromComponent` when your callback already has a UI component, such as a button or toggle-owned button. Use `MewUI_PlaySoundEventInScene` when you only have a scene name and SWF instance name.
+
+```c
+static void __cdecl SoundButtonCallback(void* button, MewButtonEvent eventType, MewButtonState oldState, MewButtonState newState, void* userData)
+{
+    (void)oldState;
+    (void)newState;
+    (void)userData;
+
+    if (eventType == MEW_BUTTON_EVENT_CLICK)
+    {
+        MewUI_PlaySoundEventFromComponent(button, "MapZoomerCoin_End", 1.0, 1.0, 0.0, 0U);
+    }
+}
+```
+
+Scene-based sound playback:
+
+```c
+MewUI_PlaySoundEventInScene("House", "test_button", "MapZoomerCoin_End", 1.0, 1.0, 0.0, 0U);
+```
+
 ## Recommended UI Tick
 
 Most mods should handle UI work responsibly and carefully. Do not update something every frame (60fps default) if you don't need to! Cache things and use scene binding refreshes. Helper calls will simply fail until the scene and the target nodes are available. Your `UITick` and `ShutdownUIState(void)` should ideally look as shown below!
@@ -449,6 +685,8 @@ static void __cdecl UITick(void* userData)
 
     SetExampleText();
     SetupExampleButton();
+    SetupExampleToggle();
+    SetupExampleNavigation();
 }
 ```
 
