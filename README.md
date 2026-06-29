@@ -700,13 +700,6 @@ static void ShutdownUIState(void)
 }
 ```
 
-## C# Support
-
-Experimental C# support via wrapper is currently provided (Thanks Ivanca!), but a packaged managed DLL is planned!
-
-- `src/csharp/MewUI.cs` contains the C# wrapper around the native C/C++ MewUI API.
-- `src/csharp/ManagedMod.cs` contains an example C# UI mod.
-
 ## Building from Source
 
 Requires MSVC, such as Visual Studio Build Tools or full Visual Studio.
