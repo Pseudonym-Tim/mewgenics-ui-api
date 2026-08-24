@@ -2226,6 +2226,7 @@ int MewUI_PlaySoundEventFromComponent(void* component, const char* event_name, d
     MewNarrowString sound_event;
     void* audio_source;
     uint8_t sound_event_initialized;
+    uint8_t sound_event_transferred_to_engine;
     int result;
 
     if (!component || !event_name || !event_name[0])
@@ -2246,6 +2247,7 @@ int MewUI_PlaySoundEventFromComponent(void* component, const char* event_name, d
     audio_source = NULL;
     memset(&sound_event, 0, sizeof(sound_event));
     sound_event_initialized = 0U;
+    sound_event_transferred_to_engine = 0U;
     result = 0;
 
     __try
@@ -2267,6 +2269,9 @@ int MewUI_PlaySoundEventFromComponent(void* component, const char* event_name, d
     {
         init_string(&sound_event, event_name);
         sound_event_initialized = 1U;
+
+        // AudioSource::PlaySoundEvent consumes/destroys this string argument...
+        sound_event_transferred_to_engine = 1U;
         play_sound_event(audio_source, &sound_event, x, y, z, routed);
         result = 1;
     }
@@ -2276,7 +2281,7 @@ int MewUI_PlaySoundEventFromComponent(void* component, const char* event_name, d
         result = 0;
     }
 
-    if (sound_event_initialized)
+    if (sound_event_initialized && !sound_event_transferred_to_engine)
     {
         __try
         {
