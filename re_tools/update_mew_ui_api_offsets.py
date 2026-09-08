@@ -109,18 +109,30 @@ def find_pattern(buffer: bytes, pattern: bytes, mask: list[bool]) -> list[int]:
     if not fixed_indices:
         return []
 
-    anchor_index: int = fixed_indices[0]
-    anchor_value: int = pattern[anchor_index]
+    fixed_runs: list[tuple[int, int]] = []
+    run_start: int | None = None
+
+    for index in range(pattern_length + 1):
+        is_fixed: bool = index < pattern_length and mask[index]
+
+        if is_fixed and run_start is None:
+            run_start = index
+        elif not is_fixed and run_start is not None:
+            fixed_runs.append((run_start, index))
+            run_start = None
+
+    anchor_start, anchor_end = max(fixed_runs, key=lambda run: run[1] - run[0])
+    anchor: bytes = pattern[anchor_start:anchor_end]
     matches: list[int] = []
     search_from: int = 0
 
     while True:
-        anchor_position: int = buffer.find(bytes([anchor_value]), search_from)
+        anchor_position: int = buffer.find(anchor, search_from)
 
         if anchor_position < 0:
             break
 
-        start: int = anchor_position - anchor_index
+        start: int = anchor_position - anchor_start
 
         if start >= 0 and start + pattern_length <= len(buffer):
             is_match: bool = True
@@ -241,17 +253,35 @@ def load_signatures(signature_path: Path) -> dict[str, Any]:
 
     return config
 
+def validate_signature_coverage(header_path: Path, signature_config: dict[str, Any]) -> None:
+    header_text: str = header_path.read_text(encoding="utf-8")
+    managed_symbols: set[str] = set(re.findall(r"^\s*#define\s+(MEW_(?:RVA|OFF|SIZE)_[A-Z0-9_]+)\s+", header_text, re.MULTILINE))
+    configured_symbols: set[str] = set(str(name) for name in signature_config["symbols"].keys())
+    missing: list[str] = sorted(managed_symbols - configured_symbols)
+    stale: list[str] = sorted(configured_symbols - managed_symbols)
+
+    if missing:
+        raise RuntimeError("Signature JSON is missing managed header symbols: " + ", ".join(missing))
+
+    if stale:
+        raise RuntimeError("Signature JSON contains symbols not present in the header: " + ", ".join(stale))
+
 def main() -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description="Update mew_ui_api.h RVAs and constants from Mewgenics byte signatures.")
     parser.add_argument("exe_path", type=Path, help="Path to the updated Mewgenics executable.")
     parser.add_argument("header_path", type=Path, help="Path to mew_ui_api.h.")
-    parser.add_argument("--signatures", type=Path, default=Path("mew_ui_api_signatures.json"), help="Path to mew_ui_api_signatures.json.")
+    parser.add_argument("--signatures", type=Path, default=Path(__file__).with_name("mew_ui_api_signatures.json"), help="Path to mew_ui_api_signatures.json. Defaults to the copy beside this script.")
     parser.add_argument("--dry-run", action="store_true", help="Resolve symbols and print results without rewriting the header.")
     parser.add_argument("--no-backup", action="store_true", help="Do not create a .bak copy before rewriting the header.")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow managed MEW_RVA/MEW_OFF/MEW_SIZE defines to be absent from the signature JSON.")
     args: argparse.Namespace = parser.parse_args()
 
     pe_image: PeImage = PeImage(args.exe_path)
     signature_config: dict[str, Any] = load_signatures(args.signatures)
+
+    if not args.allow_partial:
+        validate_signature_coverage(args.header_path, signature_config)
+
     resolved_values: dict[str, int] = {}
 
     for symbol_name, symbol_config_any in signature_config["symbols"].items():

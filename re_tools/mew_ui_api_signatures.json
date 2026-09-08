@@ -183,6 +183,30 @@
       ],
       "match_offset": 0
     },
+    "MEW_RVA_MOVIECLIP_GOTO_AND_PLAY_FRAME": {
+      "kind": "rva",
+      "pattern": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 81 D0 00 00 00 33 F6 85 D2 44 8B C6 48 8B F9",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
+    "MEW_RVA_GET_AUDIO_SOURCE_FROM_COMPONENT": {
+      "kind": "rva",
+      "pattern": "48 8B 01 FF 50 18 8B D5 4C 8B 40 40 4D 85 C0 74 13 83 38 0A",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": -48
+    },
+    "MEW_RVA_AUDIO_SOURCE_PLAY_SOUND_EVENT": {
+      "kind": "rva",
+      "pattern": "48 8B C4 48 89 58 18 48 89 50 10 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 B0 48 81 EC 50 01 00 00 0F 29 70 B8 0F 29",
+      "search_sections": [
+        ".text"
+      ],
+      "match_offset": 0
+    },
     "MEW_RVA_BUTTON_CONSTRUCT": {
       "kind": "rva",
       "pattern": "48 89 5C 24 10 48 89 74 24 18 48 89 4C 24 08 57 48 83 EC 30 48 8B D9 8B",
